@@ -1,0 +1,232 @@
+package com.psptech.homeservice;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@RequestMapping("/api/providers")
+@CrossOrigin(origins = "http://localhost:4200") // allow Angular frontend
+
+public class ServiceProviderController {
+	@Autowired
+	private ServiceProviderRepository repository;
+
+	@Autowired
+	private ProviderService providerService;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	
+	@Autowired
+    private JwtUtil jwtUtil; // ✅ Inject JWT utility
+
+	private final String uploadDir = "E:\\Tnpsc\\";
+
+	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> register(@RequestParam String name, @RequestParam String contactNo,
+			@RequestParam String address, @RequestParam String city, @RequestParam String description,
+			@RequestParam String password,  @RequestParam("professions") String professions,
+			@RequestParam(required = false) MultipartFile photo) throws IOException {
+		String fileName = null;
+		if (photo != null && !photo.isEmpty()) {
+			fileName = System.currentTimeMillis() + "_" + photo.getOriginalFilename();
+			String uploadDir = "E:\\Tnpsc\\";
+			File uploadPath = new File(uploadDir);
+			if (!uploadPath.exists())
+				uploadPath.mkdirs();
+			File dest = new File(uploadDir + fileName);
+			photo.transferTo(dest);
+		}
+
+		
+		ServiceProvider provider = new ServiceProvider();
+		provider.setName(name);
+		provider.setContactNo(contactNo);
+		provider.setAddress(address);
+		provider.setCity(city);
+		provider.setDescription(description);
+		provider.setPassword(passwordEncoder.encode(password)); // encrypt password
+		 // ✅ Convert list of profession names to Profession entities
+		 // ✅ split comma-separated string into list of Profession entities
+	    List<Profession> professionList = Arrays.stream(professions.split(","))
+	            .map(String::trim)
+	            .map(prof -> {
+	                Profession p = new Profession();
+	                p.setName(prof);
+	                p.setProvider(provider); // important
+	                return p;
+	            }).collect(Collectors.toList());
+
+	    provider.setProfessions(professionList);
+	    
+	    
+		provider.setPhotoPath(fileName);
+		// provider.setRole("ADMIN"); // or "ADMIN" for admin registration
+
+		
+		repository.save(provider);
+		return ResponseEntity.ok(Map.of("message", "Registered Successfully"));
+	}
+
+	 @PostMapping("/login")
+	    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
+	        String contactNo = credentials.get("contactNo");
+	        String password = credentials.get("password");
+
+	        Optional<ServiceProvider> userOpt = repository.findByContactNo(contactNo);
+
+	        if (userOpt.isPresent()) {
+	            ServiceProvider user = userOpt.get();
+
+	            if (passwordEncoder.matches(password, user.getPassword())) {
+	                // ✅ Generate JWT token
+	                String token = jwtUtil.generateToken(contactNo);
+
+	                Map<String, Object> response = new HashMap<>();
+	                response.put("token", token);        // ✅ include token
+	                response.put("user", user);          // user info
+
+	                return ResponseEntity.ok(response);
+	            } else {
+	                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
+	            }
+	        } else {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+	        }
+	    }
+
+	@GetMapping
+	public ResponseEntity<List<ServiceProvider>> findProviders(@RequestParam String city,
+			@RequestParam String profession) {
+		
+		// Convert empty string to null
+	    if (city != null && city.isBlank()) city = null;
+	    if (profession != null && profession.isBlank()) profession = null;
+	    
+		List<ServiceProvider> providers = providerService.searchProviders(city, profession);
+	    return ResponseEntity.ok(providers);  // ✅ Must return valid JSON list, even if empty
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> deleteProvider(@PathVariable Long id) {
+		if (!repository.existsById(id))
+			return ResponseEntity.notFound().build();
+		repository.deleteById(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@PutMapping("/update")
+	public ResponseEntity<?> updateProfile(@RequestBody ServiceProvider updatedProvider) {
+		System.out.println("Received update for contactNo: " + updatedProvider.getContactNo()); // ✅ Debug
+
+		Optional<ServiceProvider> opt = repository.findByContactNo(updatedProvider.getContactNo());
+		if (opt.isEmpty()) {
+			System.out.println("❌ Provider not found!");
+			return ResponseEntity.notFound().build();
+		}
+		ServiceProvider user = opt.get();
+
+		System.out.println("🔧 Updating existing provider: " + user.getContactNo());
+
+		user.setName(updatedProvider.getName());
+		user.setCity(updatedProvider.getCity());
+		user.setAddress(updatedProvider.getAddress());
+		user.setProfessions(updatedProvider.getProfessions());
+		user.setDescription(updatedProvider.getDescription());
+
+		// Allow admin to update password/contactNo (optional: check role)
+		user.setPassword(updatedProvider.getPassword());
+
+		repository.save(user);
+
+		System.out.println("✅ Provider saved");
+		return ResponseEntity.ok("Profile updated");
+	}
+
+	@GetMapping("/{contactNo}")
+	public ResponseEntity<ServiceProvider> getProviderByContactNo(@PathVariable String contactNo) {
+		Optional<ServiceProvider> providerOpt = repository.findByContactNo(contactNo); // if contactNo is not ID
+		// Or use findById(contactNo) if contactNo is the @Id
+
+		return providerOpt.map(ResponseEntity::ok).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+	}
+
+	@PostMapping("/upload-photo")
+	public ResponseEntity<?> uploadPhoto(@RequestParam("photo") MultipartFile photo,
+			@RequestParam("contactNo") String contactNo) {
+		Optional<ServiceProvider> opt = repository.findByContactNo(contactNo);
+		if (opt.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Provider not found");
+		}
+
+		try {
+			String fileName = System.currentTimeMillis() + "_" + photo.getOriginalFilename();
+			Path filePath = Paths.get("E:\\Tnpsc\\").resolve(fileName).normalize();
+
+			Files.createDirectories(filePath.getParent());
+			photo.transferTo(filePath.toFile());
+
+			ServiceProvider user = opt.get();
+			user.setPhotoPath(fileName);
+			repository.save(user);
+
+			return ResponseEntity.ok(Map.of("message", "Photo uploaded successfully", "photoPath", fileName));
+		} catch (Exception e) {
+			return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
+		}
+	}
+
+	@GetMapping("/get/{contactNo}")
+	public ResponseEntity<?> getProvider(@PathVariable String contactNo) {
+		System.out.println("Looking for provider with contactNo: " + contactNo);
+		Optional<ServiceProvider> provider = repository.findByContactNo(contactNo);
+		if (provider.isPresent()) {
+			return ResponseEntity.ok(provider.get());
+		} else {
+			System.out.println("Provider not found!");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Provider not found");
+		}
+	}
+
+	@GetMapping("/photos/{filename:.+}")
+	public ResponseEntity<Resource> getPhoto(@PathVariable String filename) throws MalformedURLException {
+		Path filePath = Paths.get("E:\\Tnpsc\\").resolve(filename).normalize();
+		Resource resource = new UrlResource(filePath.toUri());
+
+		if (resource.exists()) {
+			String contentType = "image/jpeg";
+			return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
+		} else {
+			return ResponseEntity.notFound().build();
+		}
+	}
+}

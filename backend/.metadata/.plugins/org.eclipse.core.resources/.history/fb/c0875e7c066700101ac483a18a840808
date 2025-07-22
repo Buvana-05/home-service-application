@@ -1,0 +1,28 @@
+package com.psptech.homeservice;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.psptech.homerservice.repository.ProfessionRepository;
+import com.psptech.homerservice.repository.ServiceProviderRepository;
+
+@Service
+public class ProviderService {
+
+	@Autowired
+	private ServiceProviderRepository repository;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	
+	@Autowired
+    private ProfessionRepository professionRepository;
+
+    public List<ServiceProvider> searchProviders(String city, String profession) {
+        return professionRepository.findByCityAndProfession(city, profession);
+    }
+}

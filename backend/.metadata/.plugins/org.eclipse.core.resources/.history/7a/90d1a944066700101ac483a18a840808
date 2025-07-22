@@ -1,0 +1,11 @@
+package com.psptech.homeservice;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.psptech.homeservice.Admin;
+
+public interface AdminRepository extends JpaRepository<Admin, Integer>{
+	Optional<Admin> findById(Long id);
+}

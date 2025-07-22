@@ -1,0 +1,39 @@
+<div class="profile-container">
+  <h2>Edit Profile</h2>
+
+  <div *ngIf="provider">
+  <label>Name:</label>
+  <input [(ngModel)]="provider.name" type="text" />
+
+  <label>Contact Number:</label>
+  <input [(ngModel)]="provider.contactNo" type="text"  [readonly]="isProvider()"/>
+
+  <label>Password:</label>
+  <input [(ngModel)]="provider.password" type="password" [readonly]="isProvider()"/>
+
+  <label>City:</label>
+  <input [(ngModel)]="provider.city" type="text" />
+
+  <label>Address:</label>
+  <input [(ngModel)]="provider.address" type="text" />
+
+  <label>Profession(s):</label>
+<ul *ngIf="provider.professions && provider.professions.length > 0">
+  <li *ngFor="let p of provider.professions">
+    {{ p.name }}
+  </li>
+</ul>
+
+  <label>Description:</label>
+  <textarea [(ngModel)]="provider.description"></textarea>
+
+  <label>Profile Photo:</label>
+  <div *ngIf="provider.photoPath">
+    <img [src]="'http://localhost:8080/api/providers/photos/' + provider.photoPath" width="120" />
+  </div>
+  <input type="file" (change)="onFileSelected($event)" />
+  <div class="button-row">
+  <button (click)="updateProfile()">Update</button>
+ </div>
+</div>
+</div>

@@ -1,0 +1,18 @@
+<div class="container">
+<header>
+  <nav class="topnav">
+    <div class="logo">HomeServicePro</div>
+
+    <div class="nav-links">
+      <a routerLink="/home" routerLinkActive="active-link">Home</a>
+      <a routerLink="/register" routerLinkActive="active-link">Service Registration</a>
+      <a routerLink="/find" routerLinkActive="active-link">Find Providers</a>
+      <button *ngIf="showLogout" (click)="logout()" class="logout-btn">Logout</button>
+    </div> 
+  </nav>
+</header>
+
+<main>
+  <router-outlet></router-outlet>
+</main>
+</div>

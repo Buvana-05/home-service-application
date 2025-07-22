@@ -1,0 +1,7 @@
+ @Query("SELECT DISTINCT sp FROM ServiceProvider sp JOIN sp.professions p " +
+           "WHERE LOWER(sp.city) LIKE LOWER(CONCAT('%', :city, '%')) " +
+           "OR LOWER(p.name) LIKE LOWER(CONCAT('%', :profession, '%'))")
+    Page<ServiceProvider> searchByCityOrProfession(
+            @Param("city") String city,
+            @Param("profession") String profession,
+            Pageable pageable);

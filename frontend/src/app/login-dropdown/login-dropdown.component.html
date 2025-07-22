@@ -1,0 +1,7 @@
+<div class="dropdown">
+    <button class="login-btn" (click)="toggleMenu()">Login ▼</button>
+    <div class="dropdown-content" *ngIf="showMenu">
+      <a (click)="navigateTo('/login/admin')">Admin Login</a>
+      <a (click)="navigateTo('/login/login')">Provider Login</a>
+    </div>
+  </div>

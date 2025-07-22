@@ -1,0 +1,47 @@
+<header class="header">
+    <div class="container">
+      <h1 class="logo">HomeServicePro</h1>
+      <nav>
+        <a routerLink="/register">Service Registration</a>
+        <a routerLink="/find">Find Services</a>
+        <a routerLink="/about">About</a>
+        <app-login-dropdown></app-login-dropdown>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container hero-content">
+      <h2 class = "hero-before">Reliable Home Services You Can Trust</h2>
+      <p>Making Your Home a Better Place, One Service at a Time.</p>
+    </div>
+  </section>
+
+  <section class="services">
+    <div class="container">
+      <h3 class="section-title">Our Services</h3>
+      <div class="service-cards">
+        <div class="card">
+          <h4>Cleaning</h4>
+          <p>Professional home and office cleaning services to keep your space spotless.</p>
+        </div>
+        <div class="card">
+          <h4>Plumbing</h4>
+          <p>Expert plumbing repairs and installations for your home or business.</p>
+        </div>
+        <div class="card">
+          <h4>Electrical</h4>
+          <p>Safe and reliable electrical services by certified professionals.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about">
+    <div class="container">
+      <h3 class="section-title">Why Choose Us</h3>
+      <p>We connect you with verified local professionals to ensure quality and safety. Our platform is easy to use, reliable, and affordable.</p>
+    </div>
+  </section>
+
+  <button (click)="goToLogin()">Login</button>

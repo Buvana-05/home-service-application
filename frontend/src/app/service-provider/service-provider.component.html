@@ -1,0 +1,58 @@
+<div class="register-container">
+    <h2>Register Service Provider</h2>
+  
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" enctype="multipart/form-data">
+      <label>Name</label>
+      <input type="text" formControlName="name" />
+  
+      <label for="contactNo">Contact No</label>
+      <input
+         type="text"
+         id="contactNo"
+         formControlName="contactNo"
+         maxlength="10"
+         pattern="[0-9]*"
+         inputmode="numeric"
+      />
+      <div *ngIf="registerForm.get('contactNo')?.invalid && registerForm.get('contactNo')?.touched" style="color: red;">
+          Contact number must be between 6 and 10 digits.
+      </div>
+  
+      <label>Address</label>
+      <textarea formControlName="address"></textarea>
+  
+      <label>City</label>
+      <input type="text" formControlName="city" />
+  
+      <label>Photo</label>
+      <input type="file" (change)="onFileSelected($event)" />
+  
+      <label>Description</label>
+      <textarea formControlName="description"></textarea>
+  
+      <label>Password</label>
+      <input type="password" formControlName="password" />
+  
+      <label for="professions">Select Professions</label>
+      <div id="professions" class="checkbox-group">
+      <label *ngFor="let prof of availableProfessions">
+      <input
+        type="checkbox"
+        [value]="prof"
+        (change)="onProfessionChange($event)"
+      />
+      {{ prof }}
+      </label>
+      </div>
+
+      <!-- ✅ Show selected professions below the label -->
+      <div *ngIf="registerForm.get('professions')?.value?.length > 0">
+      <p><strong>Selected Professions:</strong></p>
+      <ul>
+        <li *ngFor="let prof of registerForm.value.professions">{{ prof }}</li>
+      </ul>
+      </div>
+  
+      <button type="submit" [disabled]="registerForm.invalid">Register</button>
+    </form>
+  </div>

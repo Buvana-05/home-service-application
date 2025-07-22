@@ -1,0 +1,15 @@
+<div class="login-container">
+    <h2>Admin Login</h2>
+
+    <label>ID:</label>
+    <input [(ngModel)]="adminId" type="text" placeholder="Enter Id" />
+    <br/>
+
+    <label>Name:</label>
+    <input [(ngModel)]="adminName" type="text" placeholder="Enter Name"/>
+    <br/>
+
+    <button (click)="loginAdmin()">Login</button>
+  
+    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+</div>

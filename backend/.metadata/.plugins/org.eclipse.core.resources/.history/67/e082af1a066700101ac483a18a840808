@@ -1,0 +1,153 @@
+package com.psptech.homeservice;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.psptech.homeservice.Admin;
+import com.psptech.homeservice.AdminRepository;
+import com.psptech.homeservice.JwtUtil;
+import com.psptech.homeservice.Profession;
+import com.psptech.homeservice.ServiceProvider;
+import com.psptech.homeservice.ServiceProviderRepository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
+@RestController
+@RequestMapping("/admin")
+@CrossOrigin(origins = "http://localhost:4200")
+public class AdminController {
+	@Autowired
+	private AdminRepository adminRepo;
+
+	@Autowired
+	private ServiceProviderRepository providerRepo;
+
+	// ✅ Admin Login using ID and Name
+//	@PostMapping("/login")
+//	public ResponseEntity<?> adminLogin(@RequestBody Map<String, String> data) {
+//		try {
+//			// Long id = Long.parseLong(data.get("id"));
+//			Object idObj = data.get("id");
+//			Long id = (idObj instanceof Number) ? ((Number) idObj).longValue() : Long.parseLong(idObj.toString());
+//
+//			String name = data.get("name");
+//
+//			Optional<Admin> employee = adminRepo.findById(id);
+//			if (employee.isPresent() && employee.get().getName().equalsIgnoreCase(name)) {
+//
+//				// Match service provider by name
+//				// Login success, return all service providers
+//				List<ServiceProvider> allProviders = providerRepo.findAll();
+//				return ResponseEntity.ok(allProviders);
+//
+//			} else {
+//				return ResponseEntity.status(401).body("Invalid admin ID or name.");
+//			}
+//
+//		} catch (Exception e) {
+//			return ResponseEntity.badRequest().body("Error processing login: " + e.getMessage());
+//		}
+//	}
+	
+	@Autowired
+	private JwtUtil jwtUtil;
+
+	@PostMapping("/login")
+	public ResponseEntity<?> adminLogin(@RequestBody Map<String, String> data) {
+	    try {
+	        Object idObj = data.get("id");
+	        Long id = (idObj instanceof Number) ? ((Number) idObj).longValue() : Long.parseLong(idObj.toString());
+
+	        String name = data.get("name");
+
+	        Optional<Admin> admin = adminRepo.findById(id);
+	        if (admin.isPresent() && admin.get().getName().equalsIgnoreCase(name)) {
+	            // ✅ Generate JWT
+	            String token = jwtUtil.generateToken(id + "-" + name);
+
+	            return ResponseEntity.ok(Map.of(
+	                "token", token,
+	                "message", "Login successful"
+	            ));
+	        } else {
+	            return ResponseEntity.status(401).body(Map.of("message", "Invalid admin ID or name"));
+	        }
+
+	    } catch (Exception e) {
+	        return ResponseEntity.badRequest().body(Map.of("error", "Login error: " + e.getMessage()));
+	    }
+	}
+
+	// ✅ Update Provider Profile
+	@PutMapping("/update-provider/{id}")
+	public ResponseEntity<?> updateProvider(@PathVariable Long id, @RequestBody ServiceProvider updated) {
+	    Optional<ServiceProvider> existing = providerRepo.findById(id);
+	    if (existing.isPresent()) {
+	        ServiceProvider provider = existing.get();
+
+	        provider.setName(updated.getName());
+	        provider.setContactNo(updated.getContactNo());
+	        provider.setAddress(updated.getAddress());
+	        provider.setCity(updated.getCity());
+	        provider.setDescription(updated.getDescription());
+	        provider.setPassword(updated.getPassword());
+	        provider.setPhotoPath(updated.getPhotoPath());
+
+	        // ✅ SAFELY update the professions list (avoid orphanRemoval crash)
+	        provider.getProfessions().clear();
+	        if (updated.getProfessions() != null) {
+	            for (Profession prof : updated.getProfessions()) {
+	                prof.setProvider(provider); // link each back to provider
+	                provider.getProfessions().add(prof);
+	            }
+	        }
+
+	        providerRepo.save(provider);
+	        return ResponseEntity.ok("Provider updated successfully.");
+	    } else {
+	        return ResponseEntity.status(404).body("Provider not found with ID: " + id);
+	    }
+	}
+
+	@GetMapping("/all-providers")
+	public ResponseEntity<Page<ServiceProvider>> getAllProviders(
+	    @RequestParam(defaultValue = "0") int page,
+	    @RequestParam(defaultValue = "5") int size,
+	    @RequestParam(defaultValue = "") String search
+	) {
+	    Pageable pageable = PageRequest.of(page, size);
+
+	    Page<ServiceProvider> results;
+	    if (search.isEmpty()) {
+	        results = providerRepo.findAll(pageable);
+	    } else {
+	        results = providerRepo.findByCityContainingIgnoreCaseOrProfessionContainingIgnoreCase(search, search, pageable);
+	    }
+
+	    return ResponseEntity.ok(results);
+	}
+
+	@DeleteMapping("/delete-provider/{id}")
+	public ResponseEntity<?> deleteProvider(@PathVariable Long id) {
+		if (!providerRepo.existsById(id)) {
+			return ResponseEntity.status(404).body("Provider not found");
+		}
+		providerRepo.deleteById(id);
+		return ResponseEntity.ok(Map.of("message", "Deleted successfully"));
+	}
+}

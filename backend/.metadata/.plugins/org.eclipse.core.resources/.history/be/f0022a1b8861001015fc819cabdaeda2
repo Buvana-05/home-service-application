@@ -1,0 +1,5 @@
+package com.psptech.registerservices;
+
+public class JwtAuthFilter {
+
+}

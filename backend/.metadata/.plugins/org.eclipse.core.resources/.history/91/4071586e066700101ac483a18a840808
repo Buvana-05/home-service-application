@@ -1,0 +1,18 @@
+package com.psptech.homerservice.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.psptech.homeservice.Profession;
+import com.psptech.homeservice.ServiceProvider;
+
+public interface ProfessionRepository extends JpaRepository<Profession, Long>{
+	@Query("SELECT DISTINCT p.provider FROM Profession p " +
+		       "WHERE (:city IS NULL OR p.provider.city = :city) " +
+		       "AND (:profession IS NULL OR p.name = :profession)")
+		List<ServiceProvider> findByCityAndProfession(@Param("city") String city,
+		                                              @Param("profession") String profession);
+}
